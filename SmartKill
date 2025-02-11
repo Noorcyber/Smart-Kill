@@ -1,0 +1,18 @@
+#!/bin/bash
+
+THRESHOLD=5000  # Set max KB/s before throttling
+INTERFACE="wlan0"
+
+echo "===== Smart Connection Killer ====="
+
+# Get real-time bandwidth usage
+TOP_USER=$(ifstat -i $INTERFACE 1 1 | awk 'NR==3 {print $2}')
+USER_IP=$(arp -a | awk '{print $2}' | tr -d '()')
+
+if [ "$TOP_USER" -gt "$THRESHOLD" ]; then
+    echo "⚠️ ALERT: $USER_IP is using too much bandwidth ($TOP_USER KB/s)!"
+    echo "Applying throttle..."
+    tc qdisc add dev $INTERFACE root tbf rate 100kbps burst 32kbit latency 400ms
+else
+    echo "All users within limit."
+fi
